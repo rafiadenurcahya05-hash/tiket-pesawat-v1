@@ -2,7 +2,7 @@
 session_start();
 // Jika sudah login, arahkan ke beranda
 if (isset($_SESSION['username'])) {
-    header("Location: index.php");
+    header("Location: ../index.html");
     exit();
 }
 ?>
@@ -134,7 +134,7 @@ if (isset($_SESSION['username'])) {
                 </div>
 
                 <div class="mt-6 text-center">
-                    <a href="index.php" class="text-white/70 hover:text-white text-sm transition flex items-center justify-center gap-2">
+                    <a href="../index.html" class="text-white/70 hover:text-white text-sm transition flex items-center justify-center gap-2">
                         <i class="fas fa-arrow-left"></i> Kembali ke Beranda
                     </a>
                 </div>
@@ -213,7 +213,7 @@ if (isset($_SESSION['username'])) {
                     const result = await response.json();
                     if (result.status === 'success') {
                         showToast("✅ Login berhasil! Selamat datang.", false);
-                        setTimeout(() => window.location.href = result.redirect || 'index.php', 1000);
+                        setTimeout(() => window.location.href = result.redirect || 'index.html', 1000);
                     } else {
                         showToast("❌ " + result.message, true);
                     }
