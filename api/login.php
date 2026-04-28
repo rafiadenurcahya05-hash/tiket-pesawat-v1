@@ -221,7 +221,7 @@ $error = '';
                 formData.append('password', password);
                 formData.append('remember', remember);
                 try {
-                    const response = await fetch('proses/prosesLogin.php', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    const response = await fetch('proses/ProsesLogin.php', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                     const result = await response.json();
                     if (result.status === 'success') {
                         showToast("✅ Login berhasil! Selamat datang.", false);
