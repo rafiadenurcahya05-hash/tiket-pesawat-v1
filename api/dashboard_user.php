@@ -369,54 +369,88 @@ async function loadBpsStatistics() {
     const tableBody = document.getElementById('bps-table-body');
     
     try {
-        // Minta data ke file PHP kita sendiri, BUKAN langsung ke BPS (Mencegah Error CORS)
         const response = await fetch('proses/getBpsData.php');
         const json = await response.json();
 
+        // (Opsional) Cek di inspect element browser kalau kamu mau lihat wujud asli data BPS
+        console.log("Data Asli BPS:", json);
+
         if (json.status === 'OK' && json.datacontent) {
             const dataContent = json.datacontent;
+            
+            // BPS punya banyak "laci" rahasia untuk nyimpen nama label
             const labelView = json.labelview || {};
             const labelKol = json.labelkol || {};
+            const vervar = json.vervar || [];
+            const turvar = json.turvar || [];
             
             let tableHtml = '';
             let chartLabels = [];
             let chartData = [];
             let count = 0;
 
+            // Langsung bongkar isi datacontent tanpa banyak cincong
             for (const key in dataContent) {
-                if (count >= 6) break;
+                if (count >= 6) break; // Cukup 6 data aja biar grafiknya muat
                 
-                const row = dataContent[key];
-                for (const subkey in row) {
-                    if (count >= 6) break;
+                // Ambil angkanya dan pastikan dia adalah format angka (float/integer)
+                let rawValue = dataContent[key];
+                let value = parseFloat(rawValue);
 
-                    const value = row[subkey];
-                    let labelName = labelKol[subkey] || labelView[subkey] || "Pintu " + subkey;
+                // Pastikan datanya adalah angka valid (bukan teks kosong)
+                if (!isNaN(value)) {
+                    
+                    let labelName = "Pintu Masuk " + (count + 1);
 
-                    if (value && !isNaN(value) && value > 0) {
-                        chartLabels.push(labelName);
-                        chartData.push(value);
-
-                        tableHtml += `
-                            <tr class="hover:bg-blue-50/30 transition border-b border-gray-50">
-                                <td class="px-5 py-3.5 font-semibold text-gray-700">${labelName}</td>
-                                <td class="px-5 py-3.5 text-right font-bold text-[#2b6c94]">${parseInt(value).toLocaleString('id-ID')}</td>
-                            </tr>
-                        `;
-                        count++;
+                    // Jurus Mencari Nama Label (karena BPS suka ngumpetin):
+                    if (labelView[key]) {
+                        labelName = labelView[key];
+                    } else if (labelKol[key]) {
+                        labelName = labelKol[key];
+                    } else {
+                        // Kalau ngga ada, kita cari kecocokan ID di array vervar
+                        let found = false;
+                        for (let i = 0; i < vervar.length; i++) {
+                            if (key.includes(String(vervar[i].val))) {
+                                labelName = vervar[i].label;
+                                found = true; break;
+                            }
+                        }
+                        // Kalau masih ngga ketemu juga, cari di array turvar
+                        if (!found) {
+                            for (let i = 0; i < turvar.length; i++) {
+                                if (key.includes(String(turvar[i].val))) {
+                                    labelName = turvar[i].label; break;
+                                }
+                            }
+                        }
                     }
+
+                    // Masukkan ke dalam array untuk digambar
+                    chartLabels.push(labelName);
+                    chartData.push(value);
+
+                    // Buat baris tabel
+                    tableHtml += `
+                        <tr class="hover:bg-blue-50/30 transition border-b border-gray-50">
+                            <td class="px-5 py-3.5 font-semibold text-gray-700">${labelName}</td>
+                            <td class="px-5 py-3.5 text-right font-bold text-[#2b6c94]">${value.toLocaleString('id-ID')}</td>
+                        </tr>
+                    `;
+                    count++;
                 }
             }
 
+            // Kalau ternyata emang ngga ada data sama sekali dari BPS
             if (count === 0) {
-                tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-5 text-center text-gray-500 font-semibold">Data BPS kosong.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-5 text-center text-gray-500 font-semibold">Terkoneksi ke BPS, namun data angka belum tersedia.</td></tr>`;
                 return;
             }
 
-            // Memasukkan data ke Tabel HTML
+            // 1. Tampilkan HTML ke Tabel
             tableBody.innerHTML = tableHtml;
 
-            // Menggambar Grafik Chart.js
+            // 2. Tampilkan ke Chart (Grafik)
             const ctx = document.getElementById('bpsChart').getContext('2d');
             new Chart(ctx, {
                 type: 'bar',
@@ -452,7 +486,7 @@ async function loadBpsStatistics() {
     }
 }
 
-// INI DIA TERSANGKANYA! Baris wajib ini yang bikin kodenya menyala saat web dibuka
+// Menjalankan fungsi secara otomatis
 document.addEventListener('DOMContentLoaded', loadBpsStatistics);
 
 </script>
