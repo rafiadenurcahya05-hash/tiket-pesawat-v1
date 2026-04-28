@@ -41,8 +41,8 @@ session_start();
         </form>
 
         <div class="text-center mt-6">
-            <a href="index.php" class="text-[#2b6c94] hover:underline">← Kembali ke Login</a>
-        </div>
+            <a href="login.php" class="text-[#2b6c94] hover:underline">← Kembali ke Login</a>
+        </div>  
     </div>
 </body>
 </html>

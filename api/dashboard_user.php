@@ -72,7 +72,7 @@ sort($provinsiList);
         <span class="font-bold text-xl">Jelajah<span class="text-yellow-400">.In</span></span>
     </div>
     <div class="flex items-center gap-4">
-        <a href="index.php" class="text-white/80 hover:text-white text-sm font-semibold transition hidden sm:block">
+        <a href="index.html" class="text-white/80 hover:text-white text-sm font-semibold transition hidden sm:block">
             <i class="fas fa-home mr-1"></i> Beranda
         </a>
         <div class="relative group">
@@ -125,7 +125,17 @@ sort($provinsiList);
 
 <div class="max-w-7xl mx-auto px-6 pb-12">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="dest-grid">
-        <?php foreach($destinasi as $d): ?>
+        <?php foreach($destinasi as $d): 
+            // Tambahkan logika ini untuk mencocokkan nama destinasi dengan file gambar
+            // menggunakan stripos agar pencarian teks tidak sensitif huruf besar/kecil
+            if (stripos($d['nama'], 'Raja Ampat') !== false) { $d['imgUrl'] = 'Raja-Ampat.jpg'; }
+            elseif (stripos($d['nama'], 'Borobudur') !== false) { $d['imgUrl'] = 'Borobudur.jpg'; }
+            elseif (stripos($d['nama'], 'Bromo') !== false) { $d['imgUrl'] = 'Bromo.jpg'; }
+            elseif (stripos($d['nama'], 'Toba') !== false) { $d['imgUrl'] = 'download.jpg'; } // Asumsi download.jpg adalah Danau Toba
+            elseif (stripos($d['nama'], 'Kuta') !== false) { $d['imgUrl'] = 'Kuta-Beach.jpg'; }
+            elseif (stripos($d['nama'], 'Nasional') !== false) { $d['imgUrl'] = 'Munas.jpg'; }
+            // Jika nama tidak ada di atas, ia akan tetap mencoba mengambil dari database
+        ?>
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden card-dest border border-gray-100"
              data-nama="<?= strtolower(htmlspecialchars($d['nama'])) ?>"
              data-kategori="<?= htmlspecialchars($d['kategori'] ?? '') ?>"
