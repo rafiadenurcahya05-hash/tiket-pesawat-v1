@@ -368,40 +368,31 @@ function applyFilter() {
 async function loadBpsStatistics() {
     const tableBody = document.getElementById('bps-table-body');
     
-    // Kita langsung tembak URL BPS-nya dari sini (sesuai PPT dosenmu)
-    const apiKey = '10f149869798c369c50319f51333657d';
-    const url = `https://webapi.bps.go.id/v1/api/list/model/data/lang/ind/domain/0000/var/1470/th/126/key/${apiKey}`;
-
     try {
-        const response = await fetch(url);
+        // Minta data ke file PHP kita sendiri, BUKAN langsung ke BPS (Mencegah Error CORS)
+        const response = await fetch('proses/getBpsData.php');
         const json = await response.json();
 
         if (json.status === 'OK' && json.datacontent) {
             const dataContent = json.datacontent;
-            // BPS menyimpan nama pintu masuk di sini
             const labelView = json.labelview || {};
             const labelKol = json.labelkol || {};
             
             let tableHtml = '';
             let chartLabels = [];
             let chartData = [];
-            
             let count = 0;
 
-            // Membongkar data bersarang dari BPS
             for (const key in dataContent) {
-                if (count >= 6) break; // Ambil 6 data teratas saja
+                if (count >= 6) break;
                 
                 const row = dataContent[key];
-                // Loop ke dalam nilai spesifiknya
                 for (const subkey in row) {
                     if (count >= 6) break;
 
                     const value = row[subkey];
-                    // Cari nama label yang cocok
-                    let labelName = labelKol[subkey] || labelView[subkey] || "Pintu Masuk " + subkey;
+                    let labelName = labelKol[subkey] || labelView[subkey] || "Pintu " + subkey;
 
-                    // Filter supaya cuma angka yang valid yang masuk grafik
                     if (value && !isNaN(value) && value > 0) {
                         chartLabels.push(labelName);
                         chartData.push(value);
@@ -418,14 +409,14 @@ async function loadBpsStatistics() {
             }
 
             if (count === 0) {
-                tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-5 text-center text-gray-500 font-semibold">Tabel data BPS kosong.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-5 text-center text-gray-500 font-semibold">Data BPS kosong.</td></tr>`;
                 return;
             }
 
-            // 1. Tampilkan ke Tabel
+            // Memasukkan data ke Tabel HTML
             tableBody.innerHTML = tableHtml;
 
-            // 2. Tampilkan ke Chart
+            // Menggambar Grafik Chart.js
             const ctx = document.getElementById('bpsChart').getContext('2d');
             new Chart(ctx, {
                 type: 'bar',
@@ -456,10 +447,13 @@ async function loadBpsStatistics() {
             tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-10 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle mb-2 text-2xl block"></i>Pesan BPS: ${json.message || "Data belum tersedia."}</td></tr>`;
         }
     } catch (error) {
-        tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-10 text-center text-red-500 font-bold"><i class="fas fa-wifi mb-2 text-2xl block"></i>Gagal menarik data dari server BPS.</td></tr>`;
-        console.error("Error BPS API:", error);
+        tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-10 text-center text-red-500 font-bold"><i class="fas fa-wifi mb-2 text-2xl block"></i>Gagal memuat data. Periksa getBpsData.php</td></tr>`;
+        console.error("Error Fetch:", error);
     }
 }
+
+// INI DIA TERSANGKANYA! Baris wajib ini yang bikin kodenya menyala saat web dibuka
+document.addEventListener('DOMContentLoaded', loadBpsStatistics);
 
 </script>
 </body>
