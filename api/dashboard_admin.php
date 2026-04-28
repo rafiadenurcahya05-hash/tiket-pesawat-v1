@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'server/koneksi.php';
+require __DIR__ . '/server/koneksi.php';
 
 // Proteksi Admin: Cek Cookie atau Session
 $role = $_SESSION['role'] ?? $_COOKIE['role'] ?? null;

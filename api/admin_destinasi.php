@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'server/koneksi.php';
+require __DIR__ . '/server/koneksi.php';
 
 if (!isset($_SESSION['id']) || $_SESSION['role'] != 'admin') {
     header("Location: login.php");

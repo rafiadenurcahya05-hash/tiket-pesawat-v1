@@ -1,7 +1,7 @@
 <?php
 // Tetap gunakan session_start sebagai backup, meski di Vercel kurang stabil
 session_start();
-include '../server/koneksi.php'; // Mengacu pada variabel $koneksi[cite: 16]
+include __DIR__ . '/../server/koneksi.php';
 
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
           strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';

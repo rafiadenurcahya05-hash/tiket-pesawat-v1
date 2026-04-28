@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'server/koneksi.php';
+require __DIR__ . '/server/koneksi.php';
 
 // Proteksi Halaman: Cek Cookie atau Session
 $user_id = $_SESSION['id'] ?? $_COOKIE['user_id'] ?? null;

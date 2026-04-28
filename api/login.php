@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'server/koneksi.php'; // Sesuaikan path koneksi kamu
+require __DIR__ . '/server/koneksi.php'; // Sesuaikan path koneksi kamu
 
 // 1. CEK APAKAH SUDAH LOGIN (Di atas DOCTYPE)
 if (isset($_SESSION['role'])) {
@@ -226,13 +226,13 @@ $error = '';
                     if (result.status === 'success') {
                         showToast("✅ Login berhasil! Selamat datang.", false);
                         const dashboardUrl = result.role === 'admin' ? 'dashboard_admin.php' : 'dashboard_user.php';
-                        setTimeout(() => window.location.href = dashboardUrl, 1000);
+                        // Delay 1.5s agar browser sempat simpan cookie dari response sebelum redirect
+                        setTimeout(() => window.location.href = dashboardUrl, 1500);
                     } else {
                         showToast("❌ " + result.message, true);
                     }
                 } catch(err) {
-                    showToast("✅ Simulasi: Login berhasil!", false);
-                    setTimeout(() => window.location.href = 'dashboard_user.php', 1000);
+                    showToast("❌ Terjadi kesalahan koneksi, coba lagi.", true);
                 }
             }
         }

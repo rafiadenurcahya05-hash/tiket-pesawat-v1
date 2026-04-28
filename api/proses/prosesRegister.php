@@ -1,6 +1,6 @@
 <?php
 session_start();
-require '../server/koneksi.php'; // Mengacu pada variabel $koneksi[cite: 17]
+require __DIR__ . '/../server/koneksi.php'; // Mengacu pada variabel $koneksi[cite: 17]
 
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
           strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
