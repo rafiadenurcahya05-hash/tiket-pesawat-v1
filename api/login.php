@@ -23,6 +23,10 @@ if (isset($_POST['login'])) {
 
     if (mysqli_num_rows($result) === 1) {
         $user = mysqli_fetch_assoc($result);
+        die("Login Berhasil! Role anda: " . $user['role']); // Cek apakah ini muncul
+    } else {
+        die("Gagal login: Username/Password salah atau Query error.");
+    }
 
         // --- SIMPAN DATA KE SESSION (Sangat Penting!) ---
         $_SESSION['id']   = $user['id'];
@@ -44,7 +48,7 @@ if (isset($_POST['login'])) {
     } else {
         $error = "Username atau password salah!";
     }
-}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
