@@ -13,41 +13,9 @@ if (isset($_SESSION['role'])) {
 }
 
 // 2. LOGIKA PROSES LOGIN (Saat tombol login ditekan)
-if (isset($_POST['login'])) {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-
-    // Ambil data user dari database
-    $query = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
-    $result = mysqli_query($koneksi, $query);
-
-    if (mysqli_num_rows($result) === 1) {
-        $user = mysqli_fetch_assoc($result);
-        die("Login Berhasil! Role anda: " . $user['role']); // Cek apakah ini muncul
-    } else {
-        die("Gagal login: Username/Password salah atau Query error.");
-    }
-
-        // --- SIMPAN DATA KE SESSION (Sangat Penting!) ---
-        $_SESSION['id']   = $user['id'];
-        $_SESSION['nama'] = $user['nama'];
-        $_SESSION['role'] = $user['role']; // Dashboard mengecek ini!
-
-        // --- SIMPAN KE COOKIE (Backup jika session hilang) ---
-        setcookie("user_id", $user['id'], time() + (86400 * 30), "/");
-        setcookie("username", $user['nama'], time() + (86400 * 30), "/");
-        setcookie("role", $user['role'], time() + (86400 * 30), "/");
-
-        // Redirect sesuai role
-        if ($user['role'] === 'admin') {
-            header("Location: dashboard_admin.php");
-        } else {
-            header("Location: dashboard_user.php");
-        }
-        exit();
-    } else {
-        $error = "Username atau password salah!";
-    }
+// Catatan: form login.php ini hanya sebagai fallback.
+// Login utama dilakukan via AJAX ke proses/ProsesLogin.php
+$error = '';
 
 ?>
 <!DOCTYPE html>
@@ -257,7 +225,8 @@ if (isset($_POST['login'])) {
                     const result = await response.json();
                     if (result.status === 'success') {
                         showToast("✅ Login berhasil! Selamat datang.", false);
-                        setTimeout(() => window.location.href = result.redirect || 'index.html', 1000);
+                        const dashboardUrl = result.role === 'admin' ? 'dashboard_admin.php' : 'dashboard_user.php';
+                        setTimeout(() => window.location.href = dashboardUrl, 1000);
                     } else {
                         showToast("❌ " + result.message, true);
                     }

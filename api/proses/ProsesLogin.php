@@ -33,7 +33,7 @@ if ($result->num_rows === 1) {
         $_SESSION['role']     = $user['role'];
 
         // Tentukan path redirect berdasarkan struktur foldermu
-        $redirect = ($user['role'] === 'admin') ? '../server/dashboard_admin.php' : '../server/dashboard_user.php';
+        $redirect = ($user['role'] === 'admin') ? '../dashboard_admin.php' : '../dashboard_user.php';
 
         if ($isAjax) {
             echo json_encode([
