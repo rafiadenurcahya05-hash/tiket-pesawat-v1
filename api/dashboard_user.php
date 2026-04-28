@@ -2,21 +2,29 @@
 session_start();
 require 'server/koneksi.php';
 
-// Cek apakah cookie user_id ada
-if (!isset($_COOKIE['user_id'])) {
-    header("Location: login.php"); // Tendang balik ke login jika tidak ada cookie
+// Proteksi Halaman: Cek Cookie atau Session
+$user_id = $_SESSION['id'] ?? $_COOKIE['user_id'] ?? null;
+
+if (!$user_id) {
+    header("Location: login.php");
     exit;
 }
 
-$username = $_COOKIE['username'];
+// Pastikan data session terisi jika login via cookie
+if (!isset($_SESSION['nama']) && isset($_COOKIE['username'])) {
+    $_SESSION['id'] = $_COOKIE['user_id'];
+    $_SESSION['nama'] = $_COOKIE['username'];
+    $_SESSION['role'] = $_COOKIE['role'] ?? 'user';
+}
 
-if ($_SESSION['role'] === 'admin') {
+// Jika admin nyasar ke sini, lempar ke dashboard admin
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     header("Location: dashboard_admin.php");
     exit();
 }
 
-// Ambil destinasi
-$result   = mysqli_query($koneksi, "SELECT * FROM destinasi ORDER BY rating DESC");
+// Ambil data destinasi
+$result = mysqli_query($koneksi, "SELECT * FROM destinasi ORDER BY rating DESC");
 $destinasi = [];
 while ($row = mysqli_fetch_assoc($result)) {
     $destinasi[] = $row;
@@ -56,7 +64,6 @@ sort($provinsiList);
 </head>
 <body>
 
-<!-- ============ NAVBAR ============ -->
 <nav class="navbar text-white px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-lg">
     <div class="flex items-center gap-3">
         <div class="w-9 h-9 bg-yellow-400 rounded-xl flex items-center justify-center">
@@ -71,17 +78,12 @@ sort($provinsiList);
         <div class="relative group">
             <button class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition">
                 <div class="w-7 h-7 bg-yellow-400 rounded-full flex items-center justify-center font-bold text-sm text-white">
-                    <?= strtoupper(substr($_SESSION['nama'], 0, 1)) ?>
+                    <?= strtoupper(substr($_SESSION['nama'] ?? 'U', 0, 1)) ?>
                 </div>
-                <span class="text-sm font-semibold hidden sm:block"><?= htmlspecialchars($_SESSION['nama']) ?></span>
+                <span class="text-sm font-semibold hidden sm:block"><?= htmlspecialchars($_SESSION['nama'] ?? 'User') ?></span>
                 <i class="fas fa-chevron-down text-xs"></i>
             </button>
             <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                <div class="px-4 py-3 border-b border-gray-100">
-                    <p class="font-bold text-gray-800 text-sm"><?= htmlspecialchars($_SESSION['nama']) ?></p>
-                    <p class="text-xs text-gray-500"><?= htmlspecialchars($_SESSION['email'] ?? '') ?></p>
-                    <span class="badge bg-blue-100 text-blue-700 mt-1">USER</span>
-                </div>
                 <a href="logout.php" class="flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 text-sm font-semibold transition">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
@@ -90,91 +92,40 @@ sort($provinsiList);
     </div>
 </nav>
 
-<!-- ============ HERO ============ -->
 <div class="hero-user text-white py-14 px-6 text-center relative overflow-hidden">
-    <div class="absolute inset-0 opacity-10">
-        <div class="absolute top-10 left-20 w-32 h-32 bg-white rounded-full"></div>
-        <div class="absolute bottom-5 right-32 w-20 h-20 bg-white rounded-full"></div>
-        <div class="absolute top-20 right-10 w-14 h-14 bg-yellow-300 rounded-full"></div>
-    </div>
     <div class="relative z-10 max-w-2xl mx-auto">
         <p class="text-yellow-300 font-bold text-sm mb-2 tracking-widest uppercase">Selamat Datang 👋</p>
-        <h1 class="text-3xl md:text-4xl font-bold mb-2">Halo, <?= htmlspecialchars(explode(' ', $_SESSION['nama'])[0]) ?>!</h1>
+        <h1 class="text-3xl md:text-4xl font-bold mb-2">Halo, <?= htmlspecialchars(explode(' ', $_SESSION['nama'] ?? 'Traveler')[0]) ?>!</h1>
         <p class="text-white/80 text-lg mb-6">Temukan destinasi wisata terbaik di seluruh Indonesia</p>
         
-        <!-- Search -->
         <div class="flex items-center bg-white rounded-2xl shadow-lg overflow-hidden max-w-xl mx-auto">
-            <input type="text" id="searchInput" oninput="filterDest()" placeholder="🔍  Cari destinasi wisata..."
-                class="flex-1 px-5 py-3.5 text-gray-700 text-sm outline-none font-semibold">
-            <button class="bg-[#f39c12] hover:bg-[#e67e22] text-white px-5 py-3.5 font-bold text-sm transition">
-                Cari
-            </button>
-        </div>
-
-        <!-- Stats -->
-        <div class="flex justify-center gap-8 mt-8">
-            <div class="text-center">
-                <p class="text-2xl font-bold"><?= count($destinasi) ?></p>
-                <p class="text-white/70 text-xs">Destinasi</p>
-            </div>
-            <div class="text-center">
-                <p class="text-2xl font-bold"><?= count($provinsiList) ?></p>
-                <p class="text-white/70 text-xs">Provinsi</p>
-            </div>
-            <div class="text-center">
-                <p class="text-2xl font-bold"><?= count(array_unique(array_filter(array_column($destinasi,'kategori')))) ?>+</p>
-                <p class="text-white/70 text-xs">Kategori</p>
-            </div>
+            <input type="text" id="searchInput" oninput="filterDest()" placeholder="🔍 Cari destinasi wisata..." class="flex-1 px-5 py-3.5 text-gray-700 text-sm outline-none font-semibold">
         </div>
     </div>
 </div>
 
-<!-- ============ FILTER ============ -->
 <div class="max-w-7xl mx-auto px-6 py-6">
     <div class="flex flex-wrap gap-2 items-center">
         <span class="text-sm font-bold text-gray-600 mr-2">Filter:</span>
-        <button class="filter-btn active border border-gray-300 px-4 py-1.5 rounded-full text-sm font-semibold text-gray-700" onclick="filterByKategori(this,'')">
-            Semua
-        </button>
+        <button class="filter-btn active border border-gray-300 px-4 py-1.5 rounded-full text-sm font-semibold text-gray-700" onclick="filterByKategori(this,'')">Semua</button>
         <?php
         $kategoris = array_unique(array_filter(array_column($destinasi, 'kategori')));
-        $icons = ['Alam'=>'fa-mountain','Budaya'=>'fa-landmark','Bahari'=>'fa-water','Religi'=>'fa-mosque','Kuliner'=>'fa-utensils','Hiburan'=>'fa-star'];
         foreach($kategoris as $kat): ?>
-        <button class="filter-btn border border-gray-300 px-4 py-1.5 rounded-full text-sm font-semibold text-gray-700" onclick="filterByKategori(this,'<?= htmlspecialchars($kat) ?>')">
-            <i class="fas <?= $icons[$kat] ?? 'fa-tag' ?> mr-1"></i> <?= htmlspecialchars($kat) ?>
-        </button>
+        <button class="filter-btn border border-gray-300 px-4 py-1.5 rounded-full text-sm font-semibold text-gray-700" onclick="filterByKategori(this,'<?= htmlspecialchars($kat) ?>')"><?= htmlspecialchars($kat) ?></button>
         <?php endforeach; ?>
 
-        <!-- Filter Provinsi -->
-        <select onchange="filterByProvinsi(this.value)" class="ml-auto border border-gray-300 rounded-full px-4 py-1.5 text-sm font-semibold text-gray-700 focus:outline-none focus:border-yellow-400">
+        <select onchange="filterByProvinsi(this.value)" class="ml-auto border border-gray-300 rounded-full px-4 py-1.5 text-sm font-semibold text-gray-700 focus:outline-none">
             <option value="">🗺️ Semua Provinsi</option>
             <?php foreach($provinsiList as $p): ?>
             <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
             <?php endforeach; ?>
         </select>
-
-        <!-- Sort -->
-        <select onchange="sortDest(this.value)" class="border border-gray-300 rounded-full px-4 py-1.5 text-sm font-semibold text-gray-700 focus:outline-none focus:border-yellow-400">
-            <option value="rating">⭐ Rating Tertinggi</option>
-            <option value="harga-asc">💰 Harga Terendah</option>
-            <option value="harga-desc">💎 Harga Tertinggi</option>
-            <option value="nama">🔤 Nama A-Z</option>
-        </select>
     </div>
 </div>
 
-<!-- ============ DESTINASI GRID ============ -->
 <div class="max-w-7xl mx-auto px-6 pb-12">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-[#1e3c5c]">Destinasi Wisata</h2>
-        <span class="text-sm text-gray-500" id="dest-count"><?= count($destinasi) ?> destinasi ditemukan</span>
-    </div>
-
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="dest-grid">
-        <?php foreach($destinasi as $d): 
-            $katIcons = ['Alam'=>'🏔️','Budaya'=>'🏛️','Bahari'=>'🌊','Religi'=>'🕌','Kuliner'=>'🍜','Hiburan'=>'🎡'];
-            $katEmoji = $katIcons[$d['kategori'] ?? ''] ?? '📍';
-        ?>
+        <?php foreach($destinasi as $d): ?>
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden card-dest border border-gray-100"
              data-nama="<?= strtolower(htmlspecialchars($d['nama'])) ?>"
              data-kategori="<?= htmlspecialchars($d['kategori'] ?? '') ?>"
@@ -182,55 +133,30 @@ sort($provinsiList);
              data-rating="<?= $d['rating'] ?>"
              data-harga="<?= $d['harga'] ?>">
             
-            <!-- Gambar -->
             <div class="relative overflow-hidden h-52">
-                <img src="<?= htmlspecialchars($d['imgUrl'] ?? '') ?>" 
-                     class="w-full h-full img-cover transition-transform duration-500 hover:scale-110"
-                     onerror="this.src='https://placehold.co/400x200?text=🏝️+No+Image'">
-                <!-- Badge Rating -->
-                <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-yellow-600 shadow">
+                <img src="<?= htmlspecialchars($d['imgUrl'] ?? '') ?>" class="w-full h-full img-cover" onerror="this.src='https://placehold.co/400x200?text=🏝️+No+Image'">
+                <div class="absolute top-3 left-3 bg-white/90 px-2.5 py-1 rounded-full text-xs font-bold text-yellow-600 shadow">
                     ⭐ <?= number_format($d['rating'], 1) ?>
                 </div>
-                <!-- Kategori badge -->
-                <?php if($d['kategori']): ?>
-                <div class="absolute top-3 right-3 bg-[#1e3c5c]/80 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-white">
-                    <?= $katEmoji ?> <?= htmlspecialchars($d['kategori']) ?>
-                </div>
-                <?php endif; ?>
-                <!-- Wishlist btn -->
-                <button onclick="toggleWishlist(this, <?= $d['id'] ?>, '<?= addslashes($d['nama']) ?>')" 
-                        class="wishlist-btn absolute bottom-3 right-3 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow hover:bg-red-500 hover:text-white transition text-gray-500">
-                    <i class="fas fa-heart text-sm"></i>
-                </button>
             </div>
 
-            <!-- Konten -->
             <div class="p-4">
-                <h3 class="font-bold text-gray-800 text-base leading-tight mb-1 line-clamp-1"><?= htmlspecialchars($d['nama']) ?></h3>
-                <p class="text-gray-500 text-xs mb-1 flex items-center gap-1">
-                    <i class="fas fa-map-pin text-yellow-500"></i>
-                    <span class="truncate"><?= htmlspecialchars($d['lokasi']) ?></span>
+                <h3 class="font-bold text-gray-800 text-base mb-1 truncate"><?= htmlspecialchars($d['nama']) ?></h3>
+                <p class="text-gray-500 text-xs mb-2 flex items-center gap-1">
+                    <i class="fas fa-map-pin text-yellow-500"></i> <?= htmlspecialchars($d['lokasi']) ?>
                 </p>
-                <?php if($d['provinsi']): ?>
-                <span class="badge bg-blue-50 text-blue-700 mb-2"><?= htmlspecialchars($d['provinsi']) ?></span>
-                <?php endif; ?>
-                <?php if($d['deskripsi']): ?>
-                <p class="text-gray-400 text-xs leading-relaxed mt-1 line-clamp-2"><?= htmlspecialchars($d['deskripsi']) ?></p>
-                <?php endif; ?>
                 <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
                     <div>
                         <span class="text-xs text-gray-400">Harga tiket</span>
                         <p class="font-bold text-[#2b6c94] text-base">Rp <?= number_format($d['harga'],0,',','.') ?></p>
                     </div>
-                    <button onclick='openDetailModal(<?= json_encode($d) ?>)' 
-                            class="bg-[#f39c12] hover:bg-[#e67e22] text-white px-4 py-2 rounded-xl text-xs font-bold transition">
-                        Detail & Pesan
-                    </button>
+                    <button onclick='openDetailModal(<?= json_encode($d) ?>)' class="bg-[#f39c12] text-white px-4 py-2 rounded-xl text-xs font-bold transition hover:bg-[#e67e22]">Detail</button>
                 </div>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
+</div>
 
     <!-- Empty state -->
     <div id="empty-state" class="hidden text-center py-20">

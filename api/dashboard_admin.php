@@ -2,20 +2,22 @@
 session_start();
 require 'server/koneksi.php';
 
-// Hanya admin yang bisa akses
-if (!isset($_COOKIE['user_id'])) {
+// Proteksi Admin: Cek Cookie atau Session
+$role = $_SESSION['role'] ?? $_COOKIE['role'] ?? null;
+
+if ($role !== 'admin') {
     header("Location: login.php");
-    exit;
+    exit();
 }
 
-// Ambil semua destinasi dari database
+// Ambil semua destinasi
 $result  = mysqli_query($koneksi, "SELECT * FROM destinasi ORDER BY id DESC");
 $destinasi = [];
 while ($row = mysqli_fetch_assoc($result)) {
     $destinasi[] = $row;
 }
 
-$message     = $_SESSION['message']      ?? '';
+$message = $_SESSION['message'] ?? '';
 $message_type = $_SESSION['message_type'] ?? 'success';
 unset($_SESSION['message'], $_SESSION['message_type']);
 
@@ -26,254 +28,86 @@ $BPS_API_KEY = '10f149869798c369c50319f51333657d';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Admin | DDELTIKET</title>
+    <title>Dashboard Admin | Jelajah.In</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Quicksand', sans-serif; }
-        .sidebar { width: 260px; min-height: 100vh; background: linear-gradient(160deg, #1e3c5c 0%, #2b6c94 100%); transition: all 0.3s; }
-        .sidebar-collapsed { width: 70px; }
-        .main-content { flex: 1; overflow-x: hidden; }
-        .card-stat:hover { transform: translateY(-4px); transition: 0.3s; }
+        .sidebar { width: 260px; min-height: 100vh; background: linear-gradient(160deg, #1e3c5c 0%, #2b6c94 100%); }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; overflow-y: auto; }
         .modal.active { display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
-        .modal-box { background: white; border-radius: 1.5rem; width: 100%; max-width: 680px; overflow: hidden; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { transform: translateY(30px); opacity:0; } to { transform: translateY(0); opacity:1; } }
-        .bps-item { cursor: pointer; transition: all 0.2s; }
-        .bps-item:hover { background: #fef3c7; border-color: #f39c12; }
-        .bps-item.selected { background: #fef3c7; border-color: #f39c12; border-left-width: 4px; }
-        .tab-btn { transition: all 0.2s; }
-        .tab-btn.active { background: #f39c12; color: white; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #f39c12; border-radius: 50%; width: 30px; height: 30px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .badge-admin { background: linear-gradient(135deg, #f39c12, #e67e22); }
-        table { border-collapse: collapse; }
-        th, td { white-space: nowrap; }
-        .scrollable-table { overflow-x: auto; }
     </style>
 </head>
 <body class="bg-gray-50 flex">
 
-<!-- ============ SIDEBAR ============ -->
-<aside class="sidebar flex flex-col py-6 px-4 text-white" id="sidebar">
+<aside class="sidebar flex flex-col py-6 px-4 text-white">
     <div class="flex items-center gap-3 mb-8 px-2">
-        <div class="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center flex-shrink-0">
+        <div class="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center">
             <i class="fas fa-compass text-white text-lg"></i>
         </div>
-        <span class="font-bold text-xl sidebar-text">DDELTIKET</span>
-    </div>
-
-    <div class="px-2 mb-6 sidebar-text">
-        <div class="bg-white/10 rounded-xl p-3 flex items-center gap-3">
-            <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0">
-                <?= strtoupper(substr($_SESSION['nama'], 0, 1)) ?>
-            </div>
-            <div class="min-w-0">
-                <p class="font-bold text-sm truncate"><?= htmlspecialchars($_SESSION['nama']) ?></p>
-                <span class="text-xs bg-yellow-400 text-gray-800 px-2 py-0.5 rounded-full font-bold">ADMIN</span>
-            </div>
-        </div>
+        <span class="font-bold text-xl">Jelajah Admin</span>
     </div>
 
     <nav class="flex-1 space-y-1">
-        <a href="#" onclick="showSection('dashboard')" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition font-semibold" data-section="dashboard">
-            <i class="fas fa-chart-pie w-5 text-center"></i><span class="sidebar-text">Dashboard</span>
+        <a href="?section=dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition font-semibold">
+            <i class="fas fa-chart-pie"></i> Dashboard
         </a>
-        <a href="#" onclick="showSection('destinasi')" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition font-semibold" data-section="destinasi">
-            <i class="fas fa-map-marked-alt w-5 text-center"></i><span class="sidebar-text">Kelola Destinasi</span>
-        </a>
-        <a href="#" onclick="showSection('bps')" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition font-semibold" data-section="bps">
-            <i class="fas fa-database w-5 text-center"></i><span class="sidebar-text">Data BPS</span>
+        <a href="?section=destinasi" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition font-semibold">
+            <i class="fas fa-map-marked-alt"></i> Kelola Destinasi
         </a>
     </nav>
 
-    <div class="mt-auto space-y-1">
-        <a href="index.php" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition font-semibold text-sm">
-            <i class="fas fa-globe w-5 text-center"></i><span class="sidebar-text">Lihat Website</span>
-        </a>
-        <a href="logout.php" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/40 transition font-semibold text-sm">
-            <i class="fas fa-sign-out-alt w-5 text-center"></i><span class="sidebar-text">Logout</span>
+    <div class="mt-auto">
+        <a href="logout.php" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/40 transition font-semibold">
+            <i class="fas fa-sign-out-alt"></i> Logout
         </a>
     </div>
 </aside>
 
-<!-- ============ MAIN CONTENT ============ -->
-<main class="main-content flex flex-col min-h-screen">
-
-    <!-- Topbar -->
+<main class="flex-1">
     <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-40">
-        <div class="flex items-center gap-4">
-            <button onclick="toggleSidebar()" class="text-gray-500 hover:text-gray-800 text-xl">
-                <i class="fas fa-bars"></i>
-            </button>
-            <h1 class="text-xl font-bold text-[#1e3c5c]" id="page-title">Dashboard Admin</h1>
-        </div>
-        <div class="flex items-center gap-3">
-            <span class="text-sm text-gray-500 hidden md:block"><?= date('d M Y, H:i') ?> WIB</span>
-            <div class="w-9 h-9 badge-admin rounded-full flex items-center justify-center text-white font-bold text-sm">
-                <?= strtoupper(substr($_SESSION['nama'], 0, 1)) ?>
-            </div>
+        <h1 class="text-xl font-bold text-[#1e3c5c]">Panel Admin</h1>
+        <div class="text-sm font-bold bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
+            Admin: <?= htmlspecialchars($_SESSION['nama'] ?? 'Admin') ?>
         </div>
     </header>
 
-    <div class="flex-1 p-6">
-
+    <div class="p-6">
         <?php if ($message): ?>
-        <div class="mb-4 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2
-            <?= $message_type === 'success' ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-red-100 text-red-700 border border-red-300' ?>">
-            <i class="fas <?= $message_type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
-            <?= htmlspecialchars($message) ?>
-        </div>
+            <div class="mb-4 px-4 py-3 rounded-xl bg-green-100 text-green-700 border border-green-300">
+                <?= htmlspecialchars($message) ?>
+            </div>
         <?php endif; ?>
 
-        <!-- =================== SECTION: DASHBOARD =================== -->
-        <section id="section-dashboard">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-stat">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-map-marked-alt text-blue-600 text-xl"></i>
-                        </div>
-                        <span class="text-xs font-bold text-blue-500 bg-blue-50 px-2 py-1 rounded-full">TOTAL</span>
-                    </div>
-                    <p class="text-3xl font-bold text-gray-800"><?= count($destinasi) ?></p>
-                    <p class="text-sm text-gray-500 mt-1">Total Destinasi</p>
-                </div>
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-stat">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-star text-yellow-500 text-xl"></i>
-                        </div>
-                        <span class="text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">AVG</span>
-                    </div>
-                    <?php $avgRating = count($destinasi) > 0 ? array_sum(array_column($destinasi, 'rating')) / count($destinasi) : 0; ?>
-                    <p class="text-3xl font-bold text-gray-800"><?= number_format($avgRating, 1) ?></p>
-                    <p class="text-sm text-gray-500 mt-1">Rating Rata-rata</p>
-                </div>
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-stat">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-province text-green-600 text-xl fa-map"></i>
-                        </div>
-                        <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">UNIK</span>
-                    </div>
-                    <?php $provinsi_unik = count(array_unique(array_filter(array_column($destinasi, 'provinsi')))); ?>
-                    <p class="text-3xl font-bold text-gray-800"><?= $provinsi_unik ?></p>
-                    <p class="text-sm text-gray-500 mt-1">Provinsi Tercakup</p>
-                </div>
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-stat">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-ticket-alt text-purple-600 text-xl"></i>
-                        </div>
-                        <span class="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-full">AVG</span>
-                    </div>
-                    <?php $avgHarga = count($destinasi) > 0 ? array_sum(array_column($destinasi, 'harga')) / count($destinasi) : 0; ?>
-                    <p class="text-3xl font-bold text-gray-800">Rp <?= number_format($avgHarga/1000, 0) ?>K</p>
-                    <p class="text-sm text-gray-500 mt-1">Harga Rata-rata</p>
-                </div>
-            </div>
-
-            <!-- Recent Destinasi -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-lg font-bold text-[#1e3c5c] mb-4">Destinasi Terbaru</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <?php foreach(array_slice($destinasi, 0, 3) as $d): ?>
-                    <div class="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition">
-                        <img src="<?= htmlspecialchars($d['imgUrl'] ?? '') ?>" class="w-full h-36 object-cover" onerror="this.src='https://placehold.co/400x200?text=No+Image'">
-                        <div class="p-3">
-                            <h3 class="font-bold text-gray-800 truncate"><?= htmlspecialchars($d['nama']) ?></h3>
-                            <p class="text-sm text-gray-500"><i class="fas fa-map-pin text-yellow-500 mr-1"></i><?= htmlspecialchars($d['lokasi']) ?></p>
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="font-bold text-[#2b6c94] text-sm">Rp <?= number_format($d['harga'],0,',','.') ?></span>
-                                <span class="text-yellow-500 text-sm">⭐ <?= $d['rating'] ?></span>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-                <button onclick="showSection('destinasi')" class="mt-4 text-sm text-[#2b6c94] font-semibold hover:underline">
-                    Lihat semua destinasi →
-                </button>
-            </div>
-        </section>
-
-        <!-- =================== SECTION: KELOLA DESTINASI =================== -->
-        <section id="section-destinasi" class="hidden">
-            <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
-                <div>
-                    <h2 class="text-2xl font-bold text-[#1e3c5c]">Kelola Destinasi</h2>
-                    <p class="text-sm text-gray-500">Tambah, edit, atau hapus destinasi wisata</p>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="openModal('modal-tambah')" class="bg-[#f39c12] hover:bg-[#e67e22] text-white px-5 py-2 rounded-xl font-bold flex items-center gap-2 transition shadow-md">
-                        <i class="fas fa-plus"></i> Tambah Manual
-                    </button>
-                    <button onclick="showSection('bps')" class="bg-[#2b6c94] hover:bg-[#1e3c5c] text-white px-5 py-2 rounded-xl font-bold flex items-center gap-2 transition shadow-md">
-                        <i class="fas fa-database"></i> Import BPS
-                    </button>
-                </div>
-            </div>
-
-            <!-- Tabel Destinasi -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-4 border-b border-gray-100 flex items-center gap-3">
-                    <input type="text" id="searchDest" oninput="filterTable()" placeholder="🔍 Cari destinasi..." class="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 max-w-xs focus:outline-none focus:border-yellow-400">
-                    <span class="text-sm text-gray-500"><?= count($destinasi) ?> destinasi</span>
-                </div>
-                <div class="scrollable-table">
-                <table class="w-full text-sm" id="destTable">
-                    <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
-                        <tr>
-                            <th class="px-4 py-3 text-left">Foto</th>
-                            <th class="px-4 py-3 text-left">Nama</th>
-                            <th class="px-4 py-3 text-left">Lokasi</th>
-                            <th class="px-4 py-3 text-left">Provinsi</th>
-                            <th class="px-4 py-3 text-left">Harga</th>
-                            <th class="px-4 py-3 text-left">Rating</th>
-                            <th class="px-4 py-3 text-left">Kategori</th>
-                            <th class="px-4 py-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="destTableBody">
+        <!-- Content Area: Silakan masukkan tabel dan filter BPS dari kode lama kamu di sini -->
+        <h2 class="text-lg font-bold mb-4">Daftar Destinasi</h2>
+        <div class="bg-white rounded-xl shadow overflow-hidden">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3">Nama</th>
+                        <th class="px-4 py-3">Lokasi</th>
+                        <th class="px-4 py-3">Harga</th>
+                        <th class="px-4 py-3">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
                     <?php foreach($destinasi as $d): ?>
-                    <tr class="border-t border-gray-50 hover:bg-gray-50 transition" data-nama="<?= strtolower(htmlspecialchars($d['nama'])) ?>">
+                    <tr class="border-t">
+                        <td class="px-4 py-3 font-bold"><?= htmlspecialchars($d['nama']) ?></td>
+                        <td class="px-4 py-3"><?= htmlspecialchars($d['lokasi']) ?></td>
+                        <td class="px-4 py-3">Rp <?= number_format($d['harga']) ?></td>
                         <td class="px-4 py-3">
-                            <img src="<?= htmlspecialchars($d['imgUrl'] ?? '') ?>" class="w-14 h-10 object-cover rounded-lg" onerror="this.src='https://placehold.co/56x40?text=?'">
-                        </td>
-                        <td class="px-4 py-3 font-semibold text-gray-800"><?= htmlspecialchars($d['nama']) ?></td>
-                        <td class="px-4 py-3 text-gray-600"><?= htmlspecialchars($d['lokasi']) ?></td>
-                        <td class="px-4 py-3">
-                            <span class="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full font-semibold"><?= htmlspecialchars($d['provinsi'] ?? '-') ?></span>
-                        </td>
-                        <td class="px-4 py-3 font-bold text-[#2b6c94]">Rp <?= number_format($d['harga'],0,',','.') ?></td>
-                        <td class="px-4 py-3">
-                            <span class="text-yellow-500 font-bold">⭐ <?= $d['rating'] ?></span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <?php if($d['kategori']): ?>
-                            <span class="bg-green-50 text-green-700 text-xs px-2 py-1 rounded-full"><?= htmlspecialchars($d['kategori']) ?></span>
-                            <?php endif; ?>
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <button onclick='openEditModal(<?= json_encode($d) ?>)' class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <a href="proses/prosesHapusDestinasi.php?id=<?= $d['id'] ?>" onclick="return confirm('Hapus destinasi ini?')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </div>
+                            <a href="proses/prosesHapusDestinasi.php?id=<?= $d['id'] ?>" class="text-red-500 font-bold" onclick="return confirm('Hapus?')">Hapus</a>
                         </td>
                     </tr>
                     <?php endforeach; ?>
-                    </tbody>
-                </table>
-                </div>
-            </div>
-        </section>
-
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
         <!-- =================== SECTION: DATA BPS =================== -->
         <section id="section-bps" class="hidden">
             <div class="mb-6">
