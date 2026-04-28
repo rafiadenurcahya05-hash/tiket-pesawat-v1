@@ -228,11 +228,14 @@ sort($provinsiList);
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            <div class="bg-slate-50 p-6 rounded-2xl border border-gray-50">
-                <h4 class="text-sm font-bold text-gray-600 mb-4 text-center">Visualisasi Tren Kunjungan</h4>
-                <canvas id="bpsChart" height="250"></canvas>
+        <div class="bg-slate-50 p-6 rounded-2xl border border-gray-50">
+            <h4 class="text-sm font-bold text-gray-600 mb-4 text-center">Visualisasi Tren Kunjungan</h4>
+            
+            <div class="relative w-full h-[250px]">
+                <canvas id="bpsChart"></canvas>
             </div>
+            
+        </div>
 
             <div class="flex flex-col">
                 <h4 class="text-sm font-bold text-gray-600 mb-4">Detail Data Pintu Masuk</h4>
