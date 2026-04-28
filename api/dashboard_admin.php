@@ -63,9 +63,6 @@ $BPS_API_KEY = '10f149869798c369c50319f51333657d';
         <a href="?section=destinasi" data-section="destinasi" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition font-semibold">
             <i class="fas fa-map-marked-alt w-5"></i> Kelola Destinasi
         </a>
-        <a href="?section=bps" data-section="bps" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition font-semibold">
-            <i class="fas fa-database w-5"></i> Data BPS
-        </a>
     </nav>
 
     <div class="mt-auto">
