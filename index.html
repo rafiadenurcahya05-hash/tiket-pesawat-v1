@@ -53,6 +53,8 @@
           position: relative; height: 100vh; min-height: 550px; width: 100%;
           display: flex; align-items: center; justify-content: center; text-align: center;
           padding: 0 1rem; background-size: cover; background-position: center;
+          /* Sesuaikan path gambar background di sini */
+          background-image: url('assets/img/Bromo.jpg'); 
           transition: background-image 1s ease-in-out;
       }
       .hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(0, 20, 40, 0.7), rgba(0, 40, 70, 0.5)); z-index: 1; }
@@ -184,8 +186,8 @@ const destinations = [
         location: "Jawa Timur", 
         price: 75000, 
         rating: 4.9, 
-        // SESUAI STRUKTUR: api/server/ nama file gambar
-        imgUrl: "api/Bromo.jpg", 
+        // Ubah path-nya mengarah ke folder assets/img/
+        imgUrl: "assets/img/Bromo.jpg", 
         description: "Nikmati pemandangan matahari terbit yang ikonik di kawah Bromo." 
     },
     { 
@@ -194,7 +196,8 @@ const destinations = [
         location: "Magelang", 
         price: 50000, 
         rating: 4.8, 
-        imgUrl: "api/Borobudur.jpg", 
+        // Ubah di sini juga
+        imgUrl: "assets/img/Borobudur.jpg", 
         description: "Jelajahi kemegahan candi Buddha terbesar di dunia." 
     },
     { 
@@ -203,7 +206,8 @@ const destinations = [
         location: "Lombok", 
         price: 30000, 
         rating: 4.7, 
-        imgUrl: "api/Kuta-Beach.jpg", 
+        // Dan di sini
+        imgUrl: "assets/img/Kuta-Beach.jpg", 
         description: "Pasir putih merica dan air laut yang jernih menanti Anda." 
     }
 ];

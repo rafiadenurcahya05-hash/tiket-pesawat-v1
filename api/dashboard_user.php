@@ -366,62 +366,73 @@ function applyFilter() {
 }
 
 async function loadBpsStatistics() {
+    const tableBody = document.getElementById('bps-table-body');
+    
     try {
         const response = await fetch('proses/getBpsData.php');
         const json = await response.json();
 
+        // Cek apakah balasan dari BPS statusnya OK
         if (json.status === 'OK') {
-            const tableBody = document.getElementById('bps-table-body');
             const dataContent = json.datacontent;
-            const labelsInfo = json.vervar; // Info label pintu masuk
+            const labelsInfo = json.vervar; 
             
             let tableHtml = '';
             let chartLabels = [];
             let chartData = [];
             
-            // Ambil 6 data teratas untuk ditampilkan
+            // Urutkan label dari ID terpanjang agar pencocokan lebih akurat
+            const sortedLabels = [...labelsInfo].sort((a,b) => String(b.val).length - String(a.val).length);
+
             let count = 0;
             for (const key in dataContent) {
-                if (count >= 6) break;
+                if (count >= 6) break; // Cukup ambil 6 data teratas
                 
-                // Mendapatkan nama label pintu masuk
-                const labelObj = labelsInfo.find(l => l.val == key.split('')[0]);
+                // Cari nama pintu masuk berdasarkan awalan ID BPS
+                const labelObj = sortedLabels.find(l => key.startsWith(String(l.val)));
                 const labelName = labelObj ? labelObj.label : "Pintu Lainnya";
                 
-                // Mendapatkan nilai (mengambil nilai pertama di dalam objek baris)
-                const value = Object.values(dataContent[key])[0]; 
+                // Ambil nilai angkanya langsung
+                const value = dataContent[key]; 
 
-                // Masukkan ke array untuk Grafik
-                chartLabels.push(labelName);
-                chartData.push(value);
+                // Filter: Hanya proses data yang merupakan angka valid dan > 0
+                if (value && !isNaN(value) && value > 0) {
+                    chartLabels.push(labelName);
+                    chartData.push(value);
 
-                // Buat baris Tabel
-                tableHtml += `
-                    <tr class="hover:bg-blue-50/30 transition">
-                        <td class="px-5 py-3.5 font-semibold text-gray-700">${labelName}</td>
-                        <td class="px-5 py-3.5 text-right font-bold text-[#2b6c94]">${parseInt(value).toLocaleString('id-ID')}</td>
-                    </tr>
-                `;
-                count++;
+                    tableHtml += `
+                        <tr class="hover:bg-blue-50/30 transition">
+                            <td class="px-5 py-3.5 font-semibold text-gray-700">${labelName}</td>
+                            <td class="px-5 py-3.5 text-right font-bold text-[#2b6c94]">${parseInt(value).toLocaleString('id-ID')}</td>
+                        </tr>
+                    `;
+                    count++;
+                }
             }
-            
-            // Update Tabel
+
+            // Jika semua proses selesai namun data kosong
+            if (count === 0) {
+                tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-5 text-center text-gray-500 font-semibold">Tabel data BPS kosong.</td></tr>`;
+                return;
+            }
+
+            // Pasang HTML tabel ke layar
             tableBody.innerHTML = tableHtml;
 
-            // Gambar Grafik (Chart.js)
+            // Render Grafik Batang (Chart.js)
             const ctx = document.getElementById('bpsChart').getContext('2d');
             new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: chartLabels,
                     datasets: [{
-                        label: 'Jumlah Kunjungan',
+                        label: 'Kunjungan Wisatawan',
                         data: chartData,
-                        backgroundColor: 'rgba(30, 60, 92, 0.8)', // Warna biru sesuai brand Jelajah.In
+                        backgroundColor: 'rgba(30, 60, 92, 0.8)',
                         borderColor: '#1e3c5c',
                         borderWidth: 1,
                         borderRadius: 8,
-                        hoverBackgroundColor: '#f39c12' // Warna kuning saat di-hover
+                        hoverBackgroundColor: '#f39c12'
                     }]
                 },
                 options: {
@@ -434,15 +445,16 @@ async function loadBpsStatistics() {
                     }
                 }
             });
+            
+        } else {
+            // MENANGKAP ERROR DARI BPS (agar tidak nyangkut memuat tiada henti)
+            tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-10 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle mb-2 text-2xl block"></i>Pesan BPS: ${json.message || "Data belum tersedia untuk wilayah ini."}</td></tr>`;
         }
     } catch (error) {
-        document.getElementById('bps-table-body').innerHTML = `
-            <tr><td colspan="2" class="px-5 py-5 text-center text-red-500">Gagal memuat data statistik BPS.</td></tr>
-        `;
+        // Menangkap jika fetch PHP-nya gagal secara total (misal Vercel down)
+        tableBody.innerHTML = `<tr><td colspan="2" class="px-5 py-10 text-center text-red-500 font-bold"><i class="fas fa-wifi mb-2 text-2xl block"></i>Gagal terhubung ke modul data.</td></tr>`;
     }
 }
-
-document.addEventListener('DOMContentLoaded', loadBpsStatistics);
 
 </script>
 </body>
