@@ -215,6 +215,36 @@ sort($provinsiList);
     <span id="toast-msg">Berhasil!</span>
 </div>
 
+<div class="max-w-7xl mx-auto px-6 mb-10">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-gray-800">Statistik Wisatawan Mancanegara</h3>
+                <p class="text-xs text-gray-500">Data resmi dari BPS Indonesia</p>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left border-collapse">
+                <thead class="bg-indigo-50 text-indigo-700">
+                    <tr>
+                        <th class="px-4 py-3 font-bold rounded-l-xl">Pintu Masuk</th>
+                        <th class="px-4 py-3 font-bold rounded-r-xl text-right">Jumlah Kunjungan</th>
+                    </tr>
+                </thead>
+                <tbody id="bps-table-body">
+                    <tr>
+                        <td colspan="2" class="px-4 py-8 text-center text-gray-400 italic">Mengambil data statistik...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentDest = {};
 let wishlist = JSON.parse(localStorage.getItem('jelajahin-wishlist') || '[]');
@@ -320,6 +350,50 @@ function applyFilter() {
     document.getElementById('dest-count').textContent = visible.length + ' destinasi ditemukan';
     document.getElementById('empty-state').classList.toggle('hidden', visible.length > 0);
 }
+
+async function loadBpsStatistics() {
+    try {
+        // Panggil file proxy yang baru kita buat
+        const response = await fetch('proses/getBpsData.php');
+        const json = await response.json();
+
+        if (json.status === 'OK') {
+            const tableBody = document.getElementById('bps-table-body');
+            const dataContent = json.datacontent;
+            const labels = json.vervar; // Label untuk baris (Pintu Masuk)
+            
+            let html = '';
+            
+            // BPS biasanya mengirim data dalam bentuk objek. Kita ambil 5 data teratas saja.
+            let count = 0;
+            for (const key in dataContent) {
+                if (count >= 5) break;
+                
+                // Cari nama pintu masuk berdasarkan ID-nya
+                const labelName = labels.find(l => l.val == key.split('')[0])?.label || "Lainnya";
+                // Ambil nilai datanya
+                const value = Object.values(dataContent[key])[0]; 
+
+                html += `
+                    <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+                        <td class="px-4 py-3 font-medium text-gray-700">${labelName}</td>
+                        <td class="px-4 py-3 text-right font-bold text-indigo-600">${parseInt(value).toLocaleString('id-ID')}</td>
+                    </tr>
+                `;
+                count++;
+            }
+            tableBody.innerHTML = html;
+        }
+    } catch (error) {
+        document.getElementById('bps-table-body').innerHTML = `
+            <tr><td colspan="2" class="px-4 py-4 text-center text-red-500">Gagal memuat data statistik.</td></tr>
+        `;
+    }
+}
+
+// Jalankan fungsi saat halaman siap
+document.addEventListener('DOMContentLoaded', loadBpsStatistics);
+
 </script>
 </body>
 </html>
