@@ -1,9 +1,49 @@
 <?php
 session_start();
-// Jika sudah login, arahkan ke beranda
-if (isset($_SESSION['username'])) {
-    header("Location: ../index.html");
+require 'server/koneksi.php'; // Sesuaikan path koneksi kamu
+
+// 1. CEK APAKAH SUDAH LOGIN (Di atas DOCTYPE)
+if (isset($_SESSION['role'])) {
+    if ($_SESSION['role'] === 'admin') {
+        header("Location: dashboard_admin.php");
+    } else {
+        header("Location: dashboard_user.php");
+    }
     exit();
+}
+
+// 2. LOGIKA PROSES LOGIN (Saat tombol login ditekan)
+if (isset($_POST['login'])) {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    // Ambil data user dari database
+    $query = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
+    $result = mysqli_query($koneksi, $query);
+
+    if (mysqli_num_rows($result) === 1) {
+        $user = mysqli_fetch_assoc($result);
+
+        // --- SIMPAN DATA KE SESSION (Sangat Penting!) ---
+        $_SESSION['id']   = $user['id'];
+        $_SESSION['nama'] = $user['nama'];
+        $_SESSION['role'] = $user['role']; // Dashboard mengecek ini!
+
+        // --- SIMPAN KE COOKIE (Backup jika session hilang) ---
+        setcookie("user_id", $user['id'], time() + (86400 * 30), "/");
+        setcookie("username", $user['nama'], time() + (86400 * 30), "/");
+        setcookie("role", $user['role'], time() + (86400 * 30), "/");
+
+        // Redirect sesuai role
+        if ($user['role'] === 'admin') {
+            header("Location: dashboard_admin.php");
+        } else {
+            header("Location: dashboard_user.php");
+        }
+        exit();
+    } else {
+        $error = "Username atau password salah!";
+    }
 }
 ?>
 <!DOCTYPE html>
