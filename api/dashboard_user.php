@@ -41,6 +41,7 @@ sort($provinsiList);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Jelajah.In</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -215,32 +216,42 @@ sort($provinsiList);
     <span id="toast-msg">Berhasil!</span>
 </div>
 
-<div class="max-w-7xl mx-auto px-6 mb-10">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center">
-                <i class="fas fa-chart-bar"></i>
+<div class="max-w-7xl mx-auto px-6 mb-12">
+    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+        <div class="flex items-center gap-3 mb-8">
+            <div class="w-12 h-12 bg-[#1e3c5c] text-white rounded-2xl flex items-center justify-center shadow-lg">
+                <i class="fas fa-chart-line text-xl"></i>
             </div>
             <div>
-                <h3 class="font-bold text-gray-800">Statistik Wisatawan Mancanegara</h3>
-                <p class="text-xs text-gray-500">Data resmi dari BPS Indonesia</p>
+                <h3 class="font-bold text-xl text-gray-800">Statistik Kunjungan Wisman</h3>
+                <p class="text-sm text-gray-500 font-medium">Data Terkini dari BPS Indonesia</p>
             </div>
         </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left border-collapse">
-                <thead class="bg-indigo-50 text-indigo-700">
-                    <tr>
-                        <th class="px-4 py-3 font-bold rounded-l-xl">Pintu Masuk</th>
-                        <th class="px-4 py-3 font-bold rounded-r-xl text-right">Jumlah Kunjungan</th>
-                    </tr>
-                </thead>
-                <tbody id="bps-table-body">
-                    <tr>
-                        <td colspan="2" class="px-4 py-8 text-center text-gray-400 italic">Mengambil data statistik...</td>
-                    </tr>
-                </tbody>
-            </table>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div class="bg-slate-50 p-6 rounded-2xl border border-gray-50">
+                <h4 class="text-sm font-bold text-gray-600 mb-4 text-center">Visualisasi Tren Kunjungan</h4>
+                <canvas id="bpsChart" height="250"></canvas>
+            </div>
+
+            <div class="flex flex-col">
+                <h4 class="text-sm font-bold text-gray-600 mb-4">Detail Data Pintu Masuk</h4>
+                <div class="overflow-hidden border border-gray-100 rounded-2xl">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-gray-700">
+                            <tr>
+                                <th class="px-5 py-3 font-bold">Pintu Masuk</th>
+                                <th class="px-5 py-3 font-bold text-right">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bps-table-body" class="divide-y divide-gray-50">
+                            <tr>
+                                <td colspan="2" class="px-5 py-10 text-center text-gray-400 italic">Memproses data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -353,45 +364,81 @@ function applyFilter() {
 
 async function loadBpsStatistics() {
     try {
-        // Panggil file proxy yang baru kita buat
         const response = await fetch('proses/getBpsData.php');
         const json = await response.json();
 
         if (json.status === 'OK') {
             const tableBody = document.getElementById('bps-table-body');
             const dataContent = json.datacontent;
-            const labels = json.vervar; // Label untuk baris (Pintu Masuk)
+            const labelsInfo = json.vervar; // Info label pintu masuk
             
-            let html = '';
+            let tableHtml = '';
+            let chartLabels = [];
+            let chartData = [];
             
-            // BPS biasanya mengirim data dalam bentuk objek. Kita ambil 5 data teratas saja.
+            // Ambil 6 data teratas untuk ditampilkan
             let count = 0;
             for (const key in dataContent) {
-                if (count >= 5) break;
+                if (count >= 6) break;
                 
-                // Cari nama pintu masuk berdasarkan ID-nya
-                const labelName = labels.find(l => l.val == key.split('')[0])?.label || "Lainnya";
-                // Ambil nilai datanya
+                // Mendapatkan nama label pintu masuk
+                const labelObj = labelsInfo.find(l => l.val == key.split('')[0]);
+                const labelName = labelObj ? labelObj.label : "Pintu Lainnya";
+                
+                // Mendapatkan nilai (mengambil nilai pertama di dalam objek baris)
                 const value = Object.values(dataContent[key])[0]; 
 
-                html += `
-                    <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
-                        <td class="px-4 py-3 font-medium text-gray-700">${labelName}</td>
-                        <td class="px-4 py-3 text-right font-bold text-indigo-600">${parseInt(value).toLocaleString('id-ID')}</td>
+                // Masukkan ke array untuk Grafik
+                chartLabels.push(labelName);
+                chartData.push(value);
+
+                // Buat baris Tabel
+                tableHtml += `
+                    <tr class="hover:bg-blue-50/30 transition">
+                        <td class="px-5 py-3.5 font-semibold text-gray-700">${labelName}</td>
+                        <td class="px-5 py-3.5 text-right font-bold text-[#2b6c94]">${parseInt(value).toLocaleString('id-ID')}</td>
                     </tr>
                 `;
                 count++;
             }
-            tableBody.innerHTML = html;
+            
+            // Update Tabel
+            tableBody.innerHTML = tableHtml;
+
+            // Gambar Grafik (Chart.js)
+            const ctx = document.getElementById('bpsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Jumlah Kunjungan',
+                        data: chartData,
+                        backgroundColor: 'rgba(30, 60, 92, 0.8)', // Warna biru sesuai brand Jelajah.In
+                        borderColor: '#1e3c5c',
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        hoverBackgroundColor: '#f39c12' // Warna kuning saat di-hover
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
         }
     } catch (error) {
         document.getElementById('bps-table-body').innerHTML = `
-            <tr><td colspan="2" class="px-4 py-4 text-center text-red-500">Gagal memuat data statistik.</td></tr>
+            <tr><td colspan="2" class="px-5 py-5 text-center text-red-500">Gagal memuat data statistik BPS.</td></tr>
         `;
     }
 }
 
-// Jalankan fungsi saat halaman siap
 document.addEventListener('DOMContentLoaded', loadBpsStatistics);
 
 </script>
