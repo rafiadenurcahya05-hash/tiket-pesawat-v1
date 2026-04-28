@@ -218,8 +218,15 @@ const paketWisata = [
 let isLoggedIn = false; 
 
 function checkAuth() {
-    // Karena Vercel statis, kita cek apakah ada data di localStorage yang diset oleh login.php
-    const user = localStorage.getItem('username');
+    // Fungsi untuk mengambil data dari Cookie
+    const getCookie = (name) => {
+        let value = "; " + document.cookie;
+        let parts = value.split("; " + name + "=");
+        if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+
+    const user = getCookie('username'); // Ambil username dari cookie yang diset PHP
+
     if (user) {
         document.getElementById('btn-login').classList.add('hidden');
         document.getElementById('user-info').classList.remove('hidden');

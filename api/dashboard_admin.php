@@ -3,9 +3,9 @@ session_start();
 require 'server/koneksi.php';
 
 // Hanya admin yang bisa akses
-if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_COOKIE['user_id'])) {
     header("Location: login.php");
-    exit();
+    exit;
 }
 
 // Ambil semua destinasi dari database

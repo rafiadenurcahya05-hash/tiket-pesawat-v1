@@ -2,11 +2,14 @@
 session_start();
 require 'server/koneksi.php';
 
-// Hanya user yang bisa akses (redirect admin ke admin dashboard)
-if (!isset($_SESSION['id'])) {
-    header("Location: login.php");
-    exit();
+// Cek apakah cookie user_id ada
+if (!isset($_COOKIE['user_id'])) {
+    header("Location: login.php"); // Tendang balik ke login jika tidak ada cookie
+    exit;
 }
+
+$username = $_COOKIE['username'];
+
 if ($_SESSION['role'] === 'admin') {
     header("Location: dashboard_admin.php");
     exit();
